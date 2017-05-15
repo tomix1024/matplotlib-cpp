@@ -47,7 +47,21 @@ namespace matplotlibcpp {
 			PyObject *s_python_function_errorbar;
 			PyObject *s_python_function_annotate;
 			PyObject *s_python_function_tight_layout;
+			PyObject *s_python_function_gca;
 			PyObject *s_python_empty_tuple;
+
+			// matplotlib.patches
+			PyObject *s_python_class_patch;
+			PyObject *s_python_class_ellipse;
+			PyObject *s_python_class_arc;
+			PyObject *s_python_class_arrow;
+			PyObject *s_python_class_circle;
+			PyObject *s_python_class_rectangle;
+			PyObject *s_python_class_polygon;
+			PyObject *s_python_class_fancyarrow;
+			// and more
+
+
 
 			/* For now, _interpreter is implemented as a singleton since its currently not possible to have
 			   multiple independent embedded python interpreters without patching the python source code
@@ -78,7 +92,8 @@ namespace matplotlibcpp {
 
 				PyObject* pyplotname = PyString_FromString("matplotlib.pyplot");
 				PyObject* pylabname  = PyString_FromString("pylab");
-				if(!pyplotname || !pylabname) { throw std::runtime_error("couldnt create string"); }
+				PyObject* patchesname = PyString_FromString("matplotlib.patches");
+				if(!pyplotname || !pylabname || !patchesname) { throw std::runtime_error("couldnt create string"); }
 
 				PyObject* pymod = PyImport_Import(pyplotname);
 				Py_DECREF(pyplotname);
@@ -87,6 +102,10 @@ namespace matplotlibcpp {
 				PyObject* pylabmod = PyImport_Import(pylabname);
 				Py_DECREF(pylabname);
 				if(!pylabmod) { throw std::runtime_error("Error loading module pylab!"); }
+
+				PyObject* patchesmod = PyImport_Import(patchesname);
+				Py_DECREF(patchesname);
+				if(!patchesmod) { throw std::runtime_error("Error loading module matplotlib.patches!"); }
 
 				s_python_function_show = PyObject_GetAttrString(pymod, "show");
 				s_python_function_figure = PyObject_GetAttrString(pymod, "figure");
@@ -107,6 +126,16 @@ namespace matplotlibcpp {
 				s_python_function_clf = PyObject_GetAttrString(pymod, "clf");
 				s_python_function_errorbar = PyObject_GetAttrString(pymod, "errorbar");
 				s_python_function_tight_layout = PyObject_GetAttrString(pymod, "tight_layout");
+				s_python_function_gca = PyObject_GetAttrString(pymod, "gca");
+
+				s_python_class_patch = PyObject_GetAttrString(patchesmod, "Patch");
+				s_python_class_ellipse = PyObject_GetAttrString(patchesmod, "Ellipse");
+				s_python_class_arc = PyObject_GetAttrString(patchesmod, "Arc");
+				s_python_class_arrow = PyObject_GetAttrString(patchesmod, "Arrow");
+				s_python_class_circle = PyObject_GetAttrString(patchesmod, "Circle");
+				s_python_class_rectangle = PyObject_GetAttrString(patchesmod, "Rectangle");
+				s_python_class_polygon = PyObject_GetAttrString(patchesmod, "Polygon");
+				s_python_class_fancyarrow = PyObject_GetAttrString(patchesmod, "FancyArrow");
 
 				if(        !s_python_function_show
 					|| !s_python_function_figure
@@ -127,6 +156,15 @@ namespace matplotlibcpp {
 					|| !s_python_function_errorbar
 					|| !s_python_function_errorbar
 					|| !s_python_function_tight_layout
+					|| !s_python_function_gca
+					|| !s_python_class_patch
+					|| !s_python_class_ellipse
+					|| !s_python_class_arc
+					|| !s_python_class_arrow
+					|| !s_python_class_circle
+					|| !s_python_class_rectangle
+					|| !s_python_class_polygon
+					|| !s_python_class_fancyarrow
 				) { throw std::runtime_error("Couldn't find required function!"); }
 
 				if (       !PyFunction_Check(s_python_function_show)
@@ -147,7 +185,18 @@ namespace matplotlibcpp {
 					|| !PyFunction_Check(s_python_function_clf)
 					|| !PyFunction_Check(s_python_function_tight_layout)
 					|| !PyFunction_Check(s_python_function_errorbar)
+					|| !PyFunction_Check(s_python_function_gca)
 				) { throw std::runtime_error("Python object is unexpectedly not a PyFunction."); }
+
+				if (       !PyCallable_Check(s_python_class_patch)
+					|| !PyCallable_Check(s_python_class_ellipse)
+					|| !PyCallable_Check(s_python_class_arc)
+					|| !PyCallable_Check(s_python_class_arrow)
+					|| !PyCallable_Check(s_python_class_circle)
+					|| !PyCallable_Check(s_python_class_rectangle)
+					|| !PyCallable_Check(s_python_class_polygon)
+					|| !PyCallable_Check(s_python_class_fancyarrow)
+				) { throw std::runtime_error("Python object is unexpectedly not a PyClass."); }
 
 				s_python_empty_tuple = PyTuple_New(0);
 			}
@@ -799,5 +848,338 @@ namespace matplotlibcpp {
 	}
 
 #endif
+
+	namespace patches {
+
+		// TODO move somewhere else
+		class BaseWrapper
+		{
+		public:
+			BaseWrapper() : _impl(nullptr) {}
+			BaseWrapper(PyObject *impl) : _impl(impl)
+			{
+				if (_impl)
+					Py_INCREF(_impl);
+			}
+			BaseWrapper(const BaseWrapper &other) : _impl(other._impl)
+			{
+				if (_impl)
+					Py_INCREF(_impl);
+			}
+			BaseWrapper(BaseWrapper &&other) : _impl(other._impl)
+			{
+				other._impl = nullptr;
+			}
+
+			// Non-virtual descructor (is this enough?)
+			~BaseWrapper()
+			{
+				if (_impl)
+					Py_DECREF(_impl);
+			}
+
+			operator PyObject *() const
+			{
+				return _impl;
+			}
+
+		protected:
+			PyObject *_impl;
+		};
+
+		class Patch : public BaseWrapper
+		{
+		public:
+			// TODO
+		protected:
+			Patch() {}
+		};
+
+		class Ellipse : public Patch
+		{
+		public:
+			Ellipse(double x, double y, double width, double height, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>()) :
+					Ellipse(x, y, width, height, 0.0, keywords)
+			{}
+
+			Ellipse(double x, double y, double width, double height, double angle, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>())
+			{
+				PyObject* xy = PyTuple_New(2);
+				PyTuple_SetItem(xy, 0, PyFloat_FromDouble(x));
+				PyTuple_SetItem(xy, 1, PyFloat_FromDouble(y));
+
+				// construct positional args
+				PyObject* args = PyTuple_New(4);
+				PyTuple_SetItem(args, 0, xy);
+				PyTuple_SetItem(args, 1, PyFloat_FromDouble(width));
+				PyTuple_SetItem(args, 2, PyFloat_FromDouble(height));
+				PyTuple_SetItem(args, 3, PyFloat_FromDouble(angle));
+
+				// construct keyword args
+				PyObject* kwargs = PyDict_New();
+				for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
+				{
+					PyDict_SetItemString(kwargs, it->first.c_str(), PyString_FromString(it->second.c_str()));
+				}
+
+				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_ellipse, args, kwargs);
+
+				Py_DECREF(xy);
+				Py_DECREF(args);
+				Py_DECREF(kwargs);
+			}
+
+		protected:
+			Ellipse() {}
+		};
+
+		class Circle : public Ellipse
+		{
+		public:
+			Circle(double x, double y, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>()) :
+					Circle(x, y, 5.0, keywords)
+			{}
+
+			Circle(double x, double y, double radius, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>())
+			{
+				PyObject* xy = PyTuple_New(2);
+				PyTuple_SetItem(xy, 0, PyFloat_FromDouble(x));
+				PyTuple_SetItem(xy, 1, PyFloat_FromDouble(y));
+
+				// construct positional args
+				PyObject* args = PyTuple_New(2);
+				PyTuple_SetItem(args, 0, xy);
+				PyTuple_SetItem(args, 1, PyFloat_FromDouble(radius));
+
+				// construct keyword args
+				PyObject* kwargs = PyDict_New();
+				for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
+				{
+					PyDict_SetItemString(kwargs, it->first.c_str(), PyString_FromString(it->second.c_str()));
+				}
+
+				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_circle, args, kwargs);
+
+				Py_DECREF(xy);
+				Py_DECREF(args);
+				Py_DECREF(kwargs);
+			}
+
+		protected:
+			Circle() {}
+		};
+
+		class Arc : public Ellipse
+		{
+		public:
+			Arc(double x, double y, double width, double height, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>()) :
+					Arc(x, y, width, height, 0.0, 0.0, 360.0, keywords)
+			{}
+			Arc(double x, double y, double width, double height, double angle, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>()) :
+					Arc(x, y, width, height, angle, 0.0, 360.0, keywords)
+			{}
+			Arc(double x, double y, double width, double height, double angle, double theta1, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>()) :
+					Arc(x, y, width, height, angle, theta1, 360.0, keywords)
+			{}
+
+			Arc(double x, double y, double width, double height, double angle, double theta1, double theta2, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>())
+			{
+				PyObject* xy = PyTuple_New(2);
+				PyTuple_SetItem(xy, 0, PyFloat_FromDouble(x));
+				PyTuple_SetItem(xy, 1, PyFloat_FromDouble(y));
+
+				// construct positional args
+				PyObject* args = PyTuple_New(6);
+				PyTuple_SetItem(args, 0, xy);
+				PyTuple_SetItem(args, 1, PyFloat_FromDouble(width));
+				PyTuple_SetItem(args, 2, PyFloat_FromDouble(height));
+				PyTuple_SetItem(args, 3, PyFloat_FromDouble(angle));
+				PyTuple_SetItem(args, 4, PyFloat_FromDouble(theta1));
+				PyTuple_SetItem(args, 5, PyFloat_FromDouble(theta2));
+
+				// construct keyword args
+				PyObject* kwargs = PyDict_New();
+				for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
+				{
+					PyDict_SetItemString(kwargs, it->first.c_str(), PyString_FromString(it->second.c_str()));
+				}
+
+				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_arc, args, kwargs);
+
+				Py_DECREF(xy);
+				Py_DECREF(args);
+				Py_DECREF(kwargs);
+			}
+
+		protected:
+			Arc() {}
+		};
+
+		class Arrow : public Patch
+		{
+		public:
+			Arrow(double x, double y, double dx, double dy, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>()) :
+					Arrow(x, y, dx, dy, 1.0, keywords)
+			{}
+
+			Arrow(double x, double y, double dx, double dy, double width, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>())
+			{
+				// construct positional args
+				PyObject* args = PyTuple_New(5);
+				PyTuple_SetItem(args, 0, PyFloat_FromDouble(x));
+				PyTuple_SetItem(args, 1, PyFloat_FromDouble(y));
+				PyTuple_SetItem(args, 2, PyFloat_FromDouble(dx));
+				PyTuple_SetItem(args, 3, PyFloat_FromDouble(dy));
+				PyTuple_SetItem(args, 4, PyFloat_FromDouble(width));
+
+				// construct keyword args
+				PyObject* kwargs = PyDict_New();
+				for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
+				{
+					PyDict_SetItemString(kwargs, it->first.c_str(), PyString_FromString(it->second.c_str()));
+				}
+
+				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_arrow, args, kwargs);
+
+				Py_DECREF(args);
+				Py_DECREF(kwargs);
+			}
+
+		protected:
+			Arrow() {}
+		};
+
+		class Rectangle : public Patch
+		{
+		public:
+			Rectangle(double x, double y, double width, double height, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>()) :
+					Rectangle(x, y, width, height, 0.0, keywords)
+			{}
+
+			Rectangle(double x, double y, double width, double height, double angle, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>())
+			{
+				PyObject* xy = PyTuple_New(2);
+				PyTuple_SetItem(xy, 0, PyFloat_FromDouble(x));
+				PyTuple_SetItem(xy, 1, PyFloat_FromDouble(y));
+
+				// construct positional args
+				PyObject* args = PyTuple_New(4);
+				PyTuple_SetItem(args, 0, xy);
+				PyTuple_SetItem(args, 1, PyFloat_FromDouble(width));
+				PyTuple_SetItem(args, 2, PyFloat_FromDouble(height));
+				PyTuple_SetItem(args, 3, PyFloat_FromDouble(angle));
+
+				// construct keyword args
+				PyObject* kwargs = PyDict_New();
+				for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
+				{
+					PyDict_SetItemString(kwargs, it->first.c_str(), PyString_FromString(it->second.c_str()));
+				}
+
+				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_rectangle, args, kwargs);
+
+				Py_DECREF(xy);
+				Py_DECREF(args);
+				Py_DECREF(kwargs);
+			}
+
+		protected:
+			Rectangle() {}
+		};
+
+		class Polygon : public Patch
+		{
+		public:
+			// TODO requires numpy array...
+
+		protected:
+			Polygon() {}
+		};
+
+		class FancyArrow : public Polygon
+		{
+		public:
+			FancyArrow(double x, double y, double dx, double dy, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>()) :
+					FancyArrow(x, y, dx, dy, 0.001)
+			{}
+
+			FancyArrow(double x, double y, double dx, double dy, double width, const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>())
+			{
+				// construct positional args
+				PyObject* args = PyTuple_New(11);
+				PyTuple_SetItem(args, 0, PyFloat_FromDouble(x));
+				PyTuple_SetItem(args, 1, PyFloat_FromDouble(y));
+				PyTuple_SetItem(args, 2, PyFloat_FromDouble(dx));
+				PyTuple_SetItem(args, 3, PyFloat_FromDouble(dy));
+				PyTuple_SetItem(args, 4, PyFloat_FromDouble(width));
+
+				// default values
+				PyTuple_SetItem(args, 5, PyBool_FromLong(0));
+				PyTuple_SetItem(args, 6, Py_None);
+				PyTuple_SetItem(args, 7, Py_None);
+				PyTuple_SetItem(args, 8, PyString_FromString("full"));
+				PyTuple_SetItem(args, 9, PyFloat_FromDouble(0));
+				PyTuple_SetItem(args, 10, PyBool_FromLong(0));
+
+				// construct keyword args
+				PyObject* kwargs = PyDict_New();
+				for(std::map<std::string, std::string>::const_iterator it = keywords.begin(); it != keywords.end(); ++it)
+				{
+					if (it->first == "length_includes_head")
+					{
+						PyTuple_SetItem(args, 5, PyBool_FromLong(std::stol(it->second)));
+					}
+					else if (it->first == "head_width")
+					{
+						PyTuple_SetItem(args, 6, PyFloat_FromDouble(std::stod(it->second)));
+					}
+					else if (it->first == "head_length")
+					{
+						PyTuple_SetItem(args, 7, PyFloat_FromDouble(std::stod(it->second)));
+					}
+					else if (it->first == "shape")
+					{
+						PyTuple_SetItem(args, 8, PyString_FromString(it->second.c_str()));
+					}
+					else if (it->first == "overhang")
+					{
+						PyTuple_SetItem(args, 9, PyFloat_FromDouble(std::stod(it->second)));
+					}
+					else if (it->first == "head_starts_at_zero")
+					{
+						PyTuple_SetItem(args, 10, PyBool_FromLong(std::stol(it->second)));
+					}
+					else
+					{
+						PyDict_SetItemString(kwargs, it->first.c_str(), PyString_FromString(it->second.c_str()));
+					}
+				}
+
+				_impl = PyObject_Call(detail::_interpreter::get().s_python_class_fancyarrow, args, kwargs);
+
+				Py_DECREF(args);
+				Py_DECREF(kwargs);
+			}
+
+		protected:
+			FancyArrow() {}
+		};
+
+	} // namespace patches
+
+	void add_patch(const patches::Patch &patch)
+	{
+		// This method is actually a member of Axes, so apply this to the global current axes...
+		PyObject* axes = PyObject_CallObject(detail::_interpreter::get().s_python_function_gca, nullptr);
+		PyObject* add_patch_name = PyString_FromString("add_patch"); // TODO static
+		// if (!PyInstance_Check_Check((PyObject*)patch)) throw std::runtime_error("invalid patch");
+		PyObject* res = PyObject_CallMethodObjArgs(axes, add_patch_name, (PyObject*)patch, nullptr);
+
+		if (!res) throw std::runtime_error("Call to add_patch() failed.");
+
+		Py_DECREF(axes);
+		Py_DECREF(add_patch_name);
+		Py_DECREF(res);
+	}
 
 }
