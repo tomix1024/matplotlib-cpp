@@ -206,7 +206,43 @@ namespace matplotlibcpp {
 			}
 		};
 	}
-  
+
+	// Wrapper for PyObjects passed to the user, handles reference counting
+	class PythonObject
+	{
+	public:
+		PythonObject() : _impl(nullptr) {}
+		PythonObject(PyObject *impl, bool move_reference = false) : _impl(impl)
+		{
+			if (!move_reference && _impl)
+				Py_INCREF(_impl);
+		}
+		PythonObject(const PythonObject &other) : _impl(other._impl)
+		{
+			if (_impl)
+				Py_INCREF(_impl);
+		}
+		PythonObject(PythonObject &&other) : _impl(other._impl)
+		{
+			other._impl = nullptr;
+		}
+
+		// Non-virtual descructor
+		~PythonObject()
+		{
+			if (_impl)
+				Py_DECREF(_impl);
+		}
+
+		operator PyObject *() const
+		{
+			return _impl;
+		}
+
+	protected:
+		PyObject *_impl;
+	};
+
 	bool annotate(std::string annotation, double x, double y)
 	{
 		PyObject * xy = PyTuple_New(2);
@@ -849,45 +885,129 @@ namespace matplotlibcpp {
 
 #endif
 
-	namespace patches {
+	namespace artist {
 
-		// TODO move somewhere else
-		class BaseWrapper
+		class Artist : public PythonObject
 		{
 		public:
-			BaseWrapper() : _impl(nullptr) {}
-			BaseWrapper(PyObject *impl) : _impl(impl)
+			double get_alpha()
 			{
-				if (_impl)
-					Py_INCREF(_impl);
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* get_alpha_name = PyString_FromString("get_alpha"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, get_alpha_name, nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_alpha() failed.");
+
+				double result = res == Py_None? -1 : PyFloat_AsDouble(res);
+				Py_DECREF(res);
+				Py_DECREF(get_alpha_name);
+				return result;
 			}
-			BaseWrapper(const BaseWrapper &other) : _impl(other._impl)
+			void set_alpha(double alpha)
 			{
-				if (_impl)
-					Py_INCREF(_impl);
-			}
-			BaseWrapper(BaseWrapper &&other) : _impl(other._impl)
-			{
-				other._impl = nullptr;
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* arg_alpha = PyFloat_FromDouble(alpha);
+
+				PyObject* set_alpha_name = PyString_FromString("set_alpha"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, set_alpha_name, arg_alpha, nullptr);
+
+				if (!res) throw std::runtime_error("Call to set_alpha() failed.");
+
+				Py_DECREF(res);
+				Py_DECREF(set_alpha_name);
+				Py_DECREF(arg_alpha);
 			}
 
-			// Non-virtual descructor (is this enough?)
-			~BaseWrapper()
+			int get_zorder()
 			{
-				if (_impl)
-					Py_DECREF(_impl);
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* get_zorder_name = PyString_FromString("get_zorder"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, get_zorder_name, nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_zorder() failed.");
+
+				if (!PyInt_Check(res)) throw std::runtime_error("Result is not PyFloat.");
+				int result = PyInt_AsLong(res);
+				Py_DECREF(res);
+				Py_DECREF(get_zorder_name);
+				return result;
+			}
+			void set_zorder(int zorder)
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject *arg_zorder = PyInt_FromLong(zorder);
+
+				PyObject* set_zorder_name = PyString_FromString("set_zorder"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, set_zorder_name, arg_zorder, nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_zorder() failed.");
+
+				Py_DECREF(res);
+				Py_DECREF(set_zorder_name);
+				Py_DECREF(arg_zorder);
 			}
 
-			operator PyObject *() const
+			// True|False|None
+			int get_rasterized();
+			void set_rasterized();
+
+			// remove from figure if possible
+			void remove()
 			{
-				return _impl;
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* remove_name = PyString_FromString("remove"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, remove_name, nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_zorder() failed.");
+
+				Py_DECREF(res);
+				Py_DECREF(remove_name);
 			}
 
-		protected:
-			PyObject *_impl;
+			std::string get_label()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* get_label_name = PyString_FromString("get_label"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, get_label_name, nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_label() failed.");
+
+				std::string result(PyString_AsString(res));
+				Py_DECREF(res);
+				Py_DECREF(get_label_name);
+				return result;
+			}
+			void set_label(const std::string &label)
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* arg_label = PyString_FromString(label.c_str());
+
+				PyObject* set_label_name = PyString_FromString("set_label"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, set_label_name, arg_label, nullptr);
+
+				if (!res) throw std::runtime_error("Call to set_label() failed.");
+
+				Py_DECREF(res);
+				Py_DECREF(set_label_name);
+				Py_DECREF(arg_label);
+			}
+
+			// TODO some more functionality
 		};
 
-		class Patch : public BaseWrapper
+	} // namespace artist
+
+	namespace patches {
+
+		// TODO limit apstraction to Patches and Line2Ds deriving from Artists for now
+		class Patch : public ::matplotlibcpp::artist::Artist
 		{
 		public:
 			// TODO
@@ -1179,6 +1299,21 @@ namespace matplotlibcpp {
 
 		Py_DECREF(axes);
 		Py_DECREF(add_patch_name);
+		Py_DECREF(res);
+	}
+
+	void add_artist(const artist::Artist &artist)
+	{
+		// This method is actually a member of Axes, so apply this to the global current axes...
+		PyObject* axes = PyObject_CallObject(detail::_interpreter::get().s_python_function_gca, nullptr);
+		PyObject* add_artist_name = PyString_FromString("add_artist"); // TODO static
+		// if (!PyInstance_Check_Check((PyObject*)patch)) throw std::runtime_error("invalid patch");
+		PyObject* res = PyObject_CallMethodObjArgs(axes, add_artist_name, (PyObject*)artist, nullptr);
+
+		if (!res) throw std::runtime_error("Call to add_artist() failed.");
+
+		Py_DECREF(axes);
+		Py_DECREF(add_artist_name);
 		Py_DECREF(res);
 	}
 
