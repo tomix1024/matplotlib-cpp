@@ -1044,7 +1044,6 @@ namespace matplotlibcpp {
 
 				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_ellipse, args, kwargs);
 
-				Py_DECREF(xy);
 				Py_DECREF(args);
 				Py_DECREF(kwargs);
 			}
@@ -1080,7 +1079,6 @@ namespace matplotlibcpp {
 
 				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_circle, args, kwargs);
 
-				Py_DECREF(xy);
 				Py_DECREF(args);
 				Py_DECREF(kwargs);
 			}
@@ -1126,7 +1124,6 @@ namespace matplotlibcpp {
 
 				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_arc, args, kwargs);
 
-				Py_DECREF(xy);
 				Py_DECREF(args);
 				Py_DECREF(kwargs);
 			}
@@ -1198,7 +1195,6 @@ namespace matplotlibcpp {
 
 				_impl = PyObject_Call(::matplotlibcpp::detail::_interpreter::get().s_python_class_rectangle, args, kwargs);
 
-				Py_DECREF(xy);
 				Py_DECREF(args);
 				Py_DECREF(kwargs);
 			}
