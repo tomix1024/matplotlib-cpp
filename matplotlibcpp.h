@@ -50,6 +50,9 @@ namespace matplotlibcpp {
 			PyObject *s_python_function_gca;
 			PyObject *s_python_empty_tuple;
 
+			// matplotlib.axes
+			PyObject *s_python_class_axes;
+
 			// matplotlib.patches
 			PyObject *s_python_class_patch;
 			PyObject *s_python_class_ellipse;
@@ -92,8 +95,9 @@ namespace matplotlibcpp {
 
 				PyObject* pyplotname = PyString_FromString("matplotlib.pyplot");
 				PyObject* pylabname  = PyString_FromString("pylab");
+				PyObject* axesname = PyString_FromString("matplotlib.axes");
 				PyObject* patchesname = PyString_FromString("matplotlib.patches");
-				if(!pyplotname || !pylabname || !patchesname) { throw std::runtime_error("couldnt create string"); }
+				if(!pyplotname || !pylabname || !patchesname || !axesname) { throw std::runtime_error("couldnt create string"); }
 
 				PyObject* pymod = PyImport_Import(pyplotname);
 				Py_DECREF(pyplotname);
@@ -106,6 +110,10 @@ namespace matplotlibcpp {
 				PyObject* patchesmod = PyImport_Import(patchesname);
 				Py_DECREF(patchesname);
 				if(!patchesmod) { throw std::runtime_error("Error loading module matplotlib.patches!"); }
+
+				PyObject* axesmod = PyImport_Import(axesname);
+				Py_DECREF(axesname);
+				if(!axesmod) { throw std::runtime_error("Error loading module matplotlib.axes!"); }
 
 				s_python_function_show = PyObject_GetAttrString(pymod, "show");
 				s_python_function_figure = PyObject_GetAttrString(pymod, "figure");
@@ -128,6 +136,7 @@ namespace matplotlibcpp {
 				s_python_function_tight_layout = PyObject_GetAttrString(pymod, "tight_layout");
 				s_python_function_gca = PyObject_GetAttrString(pymod, "gca");
 
+				s_python_class_axes = PyObject_GetAttrString(axesmod, "Axes");
 				s_python_class_patch = PyObject_GetAttrString(patchesmod, "Patch");
 				s_python_class_ellipse = PyObject_GetAttrString(patchesmod, "Ellipse");
 				s_python_class_arc = PyObject_GetAttrString(patchesmod, "Arc");
@@ -157,6 +166,7 @@ namespace matplotlibcpp {
 					|| !s_python_function_errorbar
 					|| !s_python_function_tight_layout
 					|| !s_python_function_gca
+					|| !s_python_class_axes
 					|| !s_python_class_patch
 					|| !s_python_class_ellipse
 					|| !s_python_class_arc
@@ -167,7 +177,7 @@ namespace matplotlibcpp {
 					|| !s_python_class_fancyarrow
 				) { throw std::runtime_error("Couldn't find required function!"); }
 
-				if (       !PyFunction_Check(s_python_function_show)
+				if (	   !PyFunction_Check(s_python_function_show)
 					|| !PyFunction_Check(s_python_function_figure)
 					|| !PyFunction_Check(s_python_function_plot)
 					|| !PyFunction_Check(s_python_function_fill_between)
@@ -188,7 +198,8 @@ namespace matplotlibcpp {
 					|| !PyFunction_Check(s_python_function_gca)
 				) { throw std::runtime_error("Python object is unexpectedly not a PyFunction."); }
 
-				if (       !PyCallable_Check(s_python_class_patch)
+				if (	   !PyCallable_Check(s_python_class_axes)
+					|| !PyCallable_Check(s_python_class_patch)
 					|| !PyCallable_Check(s_python_class_ellipse)
 					|| !PyCallable_Check(s_python_class_arc)
 					|| !PyCallable_Check(s_python_class_arrow)
@@ -225,6 +236,19 @@ namespace matplotlibcpp {
 		PythonObject(PythonObject &&other) : _impl(other._impl)
 		{
 			other._impl = nullptr;
+		}
+		PythonObject &operator = (const PythonObject &other)
+		{
+			_impl = other._impl;
+			if (_impl)
+				Py_INCREF(_impl);
+			return *this;
+		}
+		PythonObject &operator = (PythonObject &&other)
+		{
+			_impl = other._impl;
+			other._impl = nullptr;
+			return *this;
 		}
 
 		// Non-virtual descructor
@@ -884,6 +908,30 @@ namespace matplotlibcpp {
 	}
 
 #endif
+
+
+	namespace axes {
+
+		class Axes : public PythonObject
+		{
+		public:
+			// Cast from arbitrary wrapped python object
+			Axes(PythonObject other) : PythonObject(std::move(other))
+			{
+				// check if other is actually an Axes object
+				if (PyObject_IsInstance(_impl, ::matplotlibcpp::detail::_interpreter::get().s_python_class_axes) != 1)
+					throw std::runtime_error("PyObject not an instance of matplotlib.axes.Axes.");
+			}
+		};
+
+	} // namespace axes
+
+
+	axes::Axes gca()
+	{
+		PythonObject axes(PyObject_CallObject(detail::_interpreter::get().s_python_function_gca, nullptr), true);
+		return axes::Axes(axes); // cast
+	}
 
 	namespace artist {
 
