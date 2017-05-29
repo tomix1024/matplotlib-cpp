@@ -922,6 +922,225 @@ namespace matplotlibcpp {
 				if (PyObject_IsInstance(_impl, ::matplotlibcpp::detail::_interpreter::get().s_python_class_axes) != 1)
 					throw std::runtime_error("PyObject not an instance of matplotlib.axes.Axes.");
 			}
+
+			// TODO
+			///XAxis get_xaxis();
+			///YAxis get_yaxis();
+
+			void invert_xaxis()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "invert_xaxis", nullptr);
+
+				if (!res) throw std::runtime_error("Call to invert_xaxis() failed.");
+
+				Py_DECREF(res);
+			}
+
+			bool xaxis_inverted()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "xaxis_inverted", nullptr);
+
+				if (!res) throw std::runtime_error("Call to xaxis_inverted() failed.");
+
+				bool result = PyBool_Check(res);
+				Py_DECREF(res);
+				return result;
+			}
+
+			void invert_yaxis()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "invert_yaxis", nullptr);
+
+				if (!res) throw std::runtime_error("Call to invert_yaxis() failed.");
+
+				Py_DECREF(res);
+			}
+
+			bool yaxis_inverted()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "yaxis_inverted", nullptr);
+
+				if (!res) throw std::runtime_error("Call to yaxis_inverted() failed.");
+
+				bool result = PyBool_Check(res);
+				Py_DECREF(res);
+				return result;
+			}
+
+			// TODO not feature complete!
+			// template<typename Left, typename Right>
+			std::pair<double, double> set_xlim(double left, double right)
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* arg_left = PyFloat_FromDouble(left);
+				PyObject* arg_right = PyFloat_FromDouble(right);
+
+				PyObject* set_xlim_name = PyString_FromString("set_xlim"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, set_xlim_name, arg_left, arg_right, nullptr);
+
+				if (!res) throw std::runtime_error("Call to set_xlim() failed.");
+
+				double res_left = PyFloat_AsDouble(PyTuple_GetItem(res, 0));
+				double res_right = PyFloat_AsDouble(PyTuple_GetItem(res, 1));
+				Py_DECREF(res);
+				Py_DECREF(arg_left);
+				Py_DECREF(arg_right);
+				Py_DECREF(set_xlim_name);
+				return std::pair<double, double>(res_left, res_right);
+			}
+
+			std::pair<double, double> get_xlim()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "get_xlim", nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_xlim() failed.");
+
+				double res_left = PyFloat_AsDouble(PyTuple_GetItem(res, 0));
+				double res_right = PyFloat_AsDouble(PyTuple_GetItem(res, 1));
+				Py_DECREF(res);
+				return std::pair<double, double>(res_left, res_right);
+			}
+
+			// TODO not feature complete!
+			// template<typename Left, typename Right>
+			std::pair<double, double> set_ylim(double bottom, double top)
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* arg_bottom = PyFloat_FromDouble(bottom);
+				PyObject* arg_top = PyFloat_FromDouble(top);
+
+				PyObject* set_ylim_name = PyString_FromString("set_ylim"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, set_ylim_name, arg_bottom, arg_top, nullptr);
+
+				if (!res) throw std::runtime_error("Call to set_ylim() failed.");
+
+				double res_bottom = PyFloat_AsDouble(PyTuple_GetItem(res, 0));
+				double res_top = PyFloat_AsDouble(PyTuple_GetItem(res, 1));
+				Py_DECREF(res);
+				Py_DECREF(arg_bottom);
+				Py_DECREF(arg_top);
+				Py_DECREF(set_ylim_name);
+				return std::pair<double, double>(res_bottom, res_top);
+			}
+
+			std::pair<double, double> get_ylim()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "get_ylim", nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_ylim() failed.");
+
+				double res_bottom = PyFloat_AsDouble(PyTuple_GetItem(res, 0));
+				double res_top = PyFloat_AsDouble(PyTuple_GetItem(res, 1));
+				Py_DECREF(res);
+				return std::pair<double, double>(res_bottom, res_top);
+			}
+
+			void set_xlabel(const std::string &xlabel)
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* arg_xlabel = PyString_FromString(xlabel.c_str());
+
+				PyObject* set_xlabel_name = PyString_FromString("set_xlabel"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, set_xlabel_name, arg_xlabel, nullptr);
+
+				if (!res) throw std::runtime_error("Call to set_xlabel() failed.");
+
+				Py_DECREF(res);
+				Py_DECREF(arg_xlabel);
+				Py_DECREF(set_xlabel_name);
+			}
+
+			std::string get_xlabel()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "get_xlabel", nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_xlabel() failed.");
+
+				std::string res_xlabel = PyString_AsString(res);
+				Py_DECREF(res);
+				return res_xlabel;
+			}
+
+			void set_ylabel(const std::string &ylabel)
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* arg_ylabel = PyString_FromString(ylabel.c_str());
+
+				PyObject* set_ylabel_name = PyString_FromString("set_ylabel"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, set_ylabel_name, arg_ylabel, nullptr);
+
+				if (!res) throw std::runtime_error("Call to set_ylabel() failed.");
+
+				Py_DECREF(res);
+				Py_DECREF(arg_ylabel);
+				Py_DECREF(set_ylabel_name);
+			}
+
+			std::string get_ylabel()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "get_ylabel", nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_ylabel() failed.");
+
+				std::string res_ylabel = PyString_AsString(res);
+				Py_DECREF(res);
+				return res_ylabel;
+			}
+
+			void set_title(const std::string &title)
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* arg_title = PyString_FromString(title.c_str());
+
+				PyObject* set_title_name = PyString_FromString("set_title"); // TODO static
+				PyObject* res = PyObject_CallMethodObjArgs(_impl, set_title_name, arg_title, nullptr);
+
+				if (!res) throw std::runtime_error("Call to set_title() failed.");
+
+				Py_DECREF(res);
+				Py_DECREF(arg_title);
+				Py_DECREF(set_title_name);
+			}
+
+			std::string get_title()
+			{
+				if (!_impl) throw std::runtime_error("Calling method on null reference");
+
+				PyObject* res = PyObject_CallMethod(_impl, "get_title", nullptr);
+
+				if (!res) throw std::runtime_error("Call to get_title() failed.");
+
+				std::string res_title = PyString_AsString(res);
+				Py_DECREF(res);
+				return res_title;
+			}
+
+			// TODO support other variants
+			void legend(const std::map<std::string, std::string> &keywords = std::map<std::string, std::string>())
+			{
+
+			}
 		};
 
 	} // namespace axes
